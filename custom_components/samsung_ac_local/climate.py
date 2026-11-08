@@ -182,6 +182,13 @@ class SamsungACClimateEntity(CoordinatorEntity[SamsungACCoordinator], ClimateEnt
             self._attr_hvac_mode = _HVAC_MODE_MAP.get(status.hvac_mode)
 
         # Temperature
+        # The AC reports temperatures in its configured display unit (OCF
+        # "units" field). Upstream assumed Celsius; US units report F and
+        # must not be re-scaled.
+        if status.temperature_unit == "F":
+            self._attr_temperature_unit = UnitOfTemperature.FAHRENHEIT
+        elif status.temperature_unit == "C":
+            self._attr_temperature_unit = UnitOfTemperature.CELSIUS
         self._attr_current_temperature = status.current_temperature
         self._attr_target_temperature = status.target_temperature
         self._attr_current_humidity = status.humidity

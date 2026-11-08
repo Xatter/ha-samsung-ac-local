@@ -99,6 +99,8 @@ class ACStatus:
     temperature_min: float | None = None
     temperature_max: float | None = None
     temperature_step: float | None = None
+    # Unit scale the AC reports temperatures in (OCF "units": C or F)
+    temperature_unit: str | None = None
 
     # Diagnostics
     rssi: int | None = None
@@ -812,6 +814,7 @@ class SamsungACClient:
         data = self._get(Resource.TEMPERATURE_CURRENT)
         if data:
             status.current_temperature = _to_float(data.get("temperature"))
+            status.temperature_unit = data.get('units') or status.temperature_unit
             temp_range = data.get("range")
             if isinstance(temp_range, list):
                 range_min, range_max, *_ = *temp_range, None, None
