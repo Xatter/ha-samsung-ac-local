@@ -99,6 +99,10 @@ class ACStatus:
     temperature_min: float | None = None
     temperature_max: float | None = None
     temperature_step: float | None = None
+    # Display-panel light state (LightMode.ON = panel lit). Parsed from the
+    # /mode/vs/0 options Light_ token with inverted polarity on ARA-WW (US)
+    # firmware; /light/vs/0 is a stateless stub there.
+    light: LightMode | None = None
     # Unit scale the AC reports temperatures in (OCF "units": C or F)
     temperature_unit: str | None = None
 
@@ -390,14 +394,25 @@ class SamsungACClient:
         """
         Set the display panel light.
 
+        2026-11-08 (ARA-WW US firmware, TP1X_DA-AC-RAC-01001_0000): the
+        dedicated /light/vs/0 resource is a stateless echo stub — it accepts
+        any payload and applies nothing. The real control is a single token
+        in /mode/vs/0's options array, with INVERTED polarity: the token
+        means "display-off mode active", so turning the panel OFF writes
+        Light_On and turning it ON writes Light_Off. The write must carry
+        ONLY the Light token (a full options array is merged and the Light
+        token reverted); single-token options writes are the shape the
+        firmware honors (same convention as set_beep).
+
         Args:
-            mode: On or Off.
+            mode: Desired panel state — LightMode.ON = panel lit.
 
         Returns:
             True if the AC accepted the command.
 
         """
-        return self._post(Resource.LIGHT, {"mode": mode.value})
+        token = "Light_Off" if mode == LightMode.ON else "Light_On"
+        return self._post(Resource.MODE, {f"{SAMSUNG_PREFIX}options": [token]})
 
     def set_auto_clean(self, setting: AutoCleanSetting) -> bool:
         """
@@ -1054,6 +1069,15 @@ def _parse_mode_options(status: ACStatus, options: list) -> None:
             status.freeze_wash_active = value == FreezeWashAction.START
         elif key == "ProgressSmartClean":
             status.freeze_wash_progress = _to_int(value)
+        elif key == "Light":
+            # Display-light state lives here on ARA-WW (US) firmware, with
+            # INVERTED polarity: the token means "display-off mode active".
+            # Verified live 2026-11-08 on TP1X_DA-AC-RAC-01001_0000 (US):
+            # Light_Off token while the panel is lit, Light_On while dark
+            # (the single-token write Light_On is what turns the panel off).
+            # /light/vs/0 is a stateless echo stub on this firmware and the
+            # EU-style stateful light resource does not exist here.
+            status.light = LightMode.OFF if value == "On" else LightMode.ON
 
 
 def _parse_beep(data: dict) -> BeepVolume | None:
