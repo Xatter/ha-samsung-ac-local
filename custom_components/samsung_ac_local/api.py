@@ -780,6 +780,11 @@ class SamsungACClient:
 
         response = data.get("controlResponse") if isinstance(data, dict) else None
         if not response:
+            # ARA-WW-TP1-24 (US) firmware answers a write with the plain
+            # updated resource and no controlResponse envelope; 2.04 there
+            # means the unit accepted it (writes apply within ~5 s).
+            if code == "2.04" and isinstance(data, dict) and data:
+                return True
             LOGGER.warning("POST %s: no controlResponse in reply", resource.value)
             return False
 
