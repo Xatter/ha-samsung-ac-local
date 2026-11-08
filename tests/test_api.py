@@ -868,6 +868,28 @@ class TestPostValidation:
         """Rejects a plain-body reply with a non-2.04 code."""
         assert self._post("4.00", {"power": "On"}, {"power": "On"}) is False
 
+    def test_no_control_response_prefixed_written_bare_reply(self) -> None:
+        """Accepts when a prefixed written key is echoed bare in the reply."""
+        assert (
+            self._post(
+                "2.04",
+                {"modes": "WindFree"},
+                {SAMSUNG_PREFIX + "modes": "WindFree"},
+            )
+            is True
+        )
+
+    def test_no_control_response_bare_written_prefixed_reply(self) -> None:
+        """Accepts when a bare written key is echoed prefixed in the reply."""
+        assert (
+            self._post(
+                "2.04",
+                {SAMSUNG_PREFIX + "modes": "WindFree"},
+                {"modes": "WindFree"},
+            )
+            is True
+        )
+
     def test_none_data_rejected(self) -> None:
         """Rejects 2.04 with None payload."""
         assert self._post("2.04", None, {"power": "On"}) is False
