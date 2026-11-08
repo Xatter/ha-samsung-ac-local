@@ -599,6 +599,53 @@ class TestStatusPolling:
         assert status.temperature_max == 30.0
         assert status.temperature_step == 1.0
 
+    def test_temperature_unit_fahrenheit(self) -> None:
+        """Reports Fahrenheit when the payload carries units=F."""
+        status = self._poll(
+            {
+                Resource.TEMPERATURE_CURRENT: {
+                    "temperature": "24.5",
+                    "units": "F",
+                },
+            }
+        )
+        assert status.temperature_unit == "F"
+
+    def test_temperature_unit_lowercase_normalized(self) -> None:
+        """Normalises lowercase unit values to upper-case."""
+        status = self._poll(
+            {
+                Resource.TEMPERATURE_CURRENT: {
+                    "temperature": "24.5",
+                    "units": "c",
+                },
+            }
+        )
+        assert status.temperature_unit == "C"
+
+    def test_temperature_unit_missing_is_none(self) -> None:
+        """Leaves temperature_unit as None when units is missing."""
+        status = self._poll(
+            {
+                Resource.TEMPERATURE_CURRENT: {
+                    "temperature": "24.5",
+                },
+            }
+        )
+        assert status.temperature_unit is None
+
+    def test_temperature_unit_invalid_is_none(self) -> None:
+        """Leaves temperature_unit as None when units is not C or F."""
+        status = self._poll(
+            {
+                Resource.TEMPERATURE_CURRENT: {
+                    "temperature": "24.5",
+                    "units": "K",
+                },
+            }
+        )
+        assert status.temperature_unit is None
+
     def test_fan_polling(self) -> None:
         """Fan mode is resolved from index."""
         status = self._poll(
