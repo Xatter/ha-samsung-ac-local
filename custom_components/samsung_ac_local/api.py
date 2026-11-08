@@ -781,6 +781,18 @@ class SamsungACClient:
 
         response = data.get("controlResponse") if isinstance(data, dict) else None
         if not response:
+            # ARA-WW (US) firmware answers a successful write with the plain
+            # updated resource, not the controlResponse envelope. Accept a
+            # 2.04 whose body carries at least one of the written keys; the
+            # values may still be the old ones because the unit applies
+            # writes asynchronously (~5 s).
+            if (
+                code == "2.04"
+                and isinstance(data, dict)
+                and data
+                and set(payload) & set(data)
+            ):
+                return True
             LOGGER.warning("POST %s: no controlResponse in reply", resource.value)
             return False
 

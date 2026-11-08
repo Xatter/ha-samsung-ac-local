@@ -852,8 +852,21 @@ class TestPostValidation:
         assert result is False
 
     def test_no_control_response_rejected(self) -> None:
-        """Rejects 2.04 without controlResponse."""
+        """Rejects 2.04 without controlResponse when no written key is echoed."""
         assert self._post("2.04", {"other": "data"}, {"power": "On"}) is False
+
+    def test_no_control_response_body_with_written_key_accepted(self) -> None:
+        """Accepts 2.04 whose plain body echoes a written key (US firmware)."""
+        # Body value may still be the old one: writes apply asynchronously.
+        assert self._post("2.04", {"power": "Off"}, {"power": "On"}) is True
+
+    def test_no_control_response_empty_body_rejected(self) -> None:
+        """Rejects 2.04 with an empty body and no controlResponse."""
+        assert self._post("2.04", {}, {"power": "On"}) is False
+
+    def test_no_control_response_wrong_code_rejected(self) -> None:
+        """Rejects a plain-body reply with a non-2.04 code."""
+        assert self._post("4.00", {"power": "On"}, {"power": "On"}) is False
 
     def test_none_data_rejected(self) -> None:
         """Rejects 2.04 with None payload."""
